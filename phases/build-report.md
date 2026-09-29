@@ -10,23 +10,23 @@
 > planner_executor / single_agent / MCP-subprocess / approval→publish
 > stubs named below.
 >
-> **Update 2026-09-13:** [PR #20](https://github.com/sh-ai-x/AgentOpsPipeline/pull/20)
+> **Update 2026-09-13:** [PR #20](https://github.com/sh-ai-x/WikiGrounded/pull/20)
 > (rebuilt all three topologies on a real `langgraph.StateGraph`) and
-> [PR #21](https://github.com/sh-ai-x/AgentOpsPipeline/pull/21) (wired real
+> [PR #21](https://github.com/sh-ai-x/WikiGrounded/pull/21) (wired real
 > `search_docs`/`read_document` tool execution into `planner_executor`,
 > fixed `api/server.py` to actually dispatch by `graph_version` instead of
 > hardcoding `fixed`) removed the `planner_executor.py` half of the stub
 > named below. `single_agent.py`'s tool-dispatch stub is untouched — that
 > PR's scope was deliberately limited to `planner_executor`.
 >
-> **Update 2026-09-15:** [PR #26](https://github.com/sh-ai-x/AgentOpsPipeline/pull/26)
+> **Update 2026-09-15:** [PR #26](https://github.com/sh-ai-x/WikiGrounded/pull/26)
 > (real MCP tool execution in `single_agent`, ReAct loop),
-> [PR #29](https://github.com/sh-ai-x/AgentOpsPipeline/pull/29) (real stdio
+> [PR #29](https://github.com/sh-ai-x/WikiGrounded/pull/29) (real stdio
 > `SubprocessDocumentClient` + 7-test integration suite), and
-> [PR #30](https://github.com/sh-ai-x/AgentOpsPipeline/pull/30)
+> [PR #30](https://github.com/sh-ai-x/WikiGrounded/pull/30)
 > (`POST /v1/actions/{id}/execute` → `TicketLedger.publish()`) closed the
 > remaining stubs called out in the 2026-09-13 update. **Step 7's held-out
-> runner fix** ([PR #27](https://github.com/sh-ai-x/AgentOpsPipeline/pull/27))
+> runner fix** ([PR #27](https://github.com/sh-ai-x/WikiGrounded/pull/27))
 > ships the benchmark code change but the **held-out re-run itself is still
 > pending** — needs `provider=minimax` to actually score.
 >
@@ -51,7 +51,7 @@
 | 4 | 3 · benchmark-prompts | **yes** | frozen held-out SHA (test-enforced), per-case reviewer/split, tuning on val only | [`03-benchmark-prompts/step4-output.json`](03-benchmark-prompts/step4-output.json) |
 | 5 | 4 · topology-experiments | **partial** | PR #26 closes `single_agent`'s tool-dispatch stub (was the last of three); all three topologies now dispatch real tool calls. The three-way comparison itself has **not been re-run** — the prior numbers predate the tool-wiring and are still in `experiments/`. ADR-0006's "fixed wins" finding needs to be re-measured per `EvidenceSourceAdapter` (ADR-0007 §5) before claiming it generalises | [`04-topology-experiments/step5-output.json`](04-topology-experiments/step5-output.json) |
 | 6 | 5 · delivery | **yes** | "wire real MCP calls" closed for both topologies (#21, #26). `SubprocessDocumentClient` is the live path (#29). Local gates re-run 2026-09-15 on `main`: `uv run pytest -q` → **210 passed, 0 failed** (`ruff check` clean). "Clean docker setup works" remains unverified — see `Dockerfile` / `docker-compose.yml`; that's the deployment-target work in phase 8 | [`05-delivery/step6-output.json`](05-delivery/step6-output.json) |
-| 7 | 6 · held-out-portfolio | **partial** | reproducible (frozen SHA + manifest) ✓; held-out runner itself is fixed to score all three topologies and read real `tool_results` instead of a hardcoded `[]` ([PR #27](https://github.com/sh-ai-x/AgentOpsPipeline/pull/27)). `task_success` / `tool_correctness` numbers below are **pre-PR#20/#21**; **the held-out re-run is still pending** — next concrete step, not yet done | [`06-held-out-portfolio/step7-output.json`](06-held-out-portfolio/step7-output.json) |
+| 7 | 6 · held-out-portfolio | **partial** | reproducible (frozen SHA + manifest) ✓; held-out runner itself is fixed to score all three topologies and read real `tool_results` instead of a hardcoded `[]` ([PR #27](https://github.com/sh-ai-x/WikiGrounded/pull/27)). `task_success` / `tool_correctness` numbers below are **pre-PR#20/#21**; **the held-out re-run is still pending** — next concrete step, not yet done | [`06-held-out-portfolio/step7-output.json`](06-held-out-portfolio/step7-output.json) |
 
 **4 of 7 acceptance criteria cleanly met as of 2026-09-15** (steps 1, 2, 3, 6
 plus the held-out runner fix in step 7). Step 4 was already a yes. Steps 5
@@ -144,22 +144,22 @@ tool-wired topology is step 7's pending concrete action.
 ## What would close the gaps
 
 1. ~~Wire `graph/planner_executor.py` tool dispatch to a real MCP client~~ —
-   **done**, [PR #21](https://github.com/sh-ai-x/AgentOpsPipeline/pull/21)
-   (2026-09-13) + [PR #26](https://github.com/sh-ai-x/AgentOpsPipeline/pull/26)
+   **done**, [PR #21](https://github.com/sh-ai-x/WikiGrounded/pull/21)
+   (2026-09-13) + [PR #26](https://github.com/sh-ai-x/WikiGrounded/pull/26)
    (2026-09-15 for `single_agent`).
 2. ~~Add a stdio-subprocess integration test for the document server~~ —
-   **done**, [PR #29](https://github.com/sh-ai-x/AgentOpsPipeline/pull/29)
+   **done**, [PR #29](https://github.com/sh-ai-x/WikiGrounded/pull/29)
    (2026-09-15).
 3. ~~Connect run → ticket draft → `/v1/actions` approve → `TicketLedger.publish()`;
-   add the "failed tool is visible" test~~ — **done**, [PR #30](https://github.com/sh-ai-x/AgentOpsPipeline/pull/30)
+   add the "failed tool is visible" test~~ — **done**, [PR #30](https://github.com/sh-ai-x/WikiGrounded/pull/30)
    (2026-09-15). `POST /v1/actions/{id}/execute` now calls `TicketLedger.publish()`
    end-to-end.
 4. ~~Fix the two vacuous tests above; fix the `.env`-sensitive auth test
    isolation~~ — **partial**; the two vacuous tests were rewritten in
-   [PR #28](https://github.com/sh-ai-x/AgentOpsPipeline/pull/28) (2026-09-15).
+   [PR #28](https://github.com/sh-ai-x/WikiGrounded/pull/28) (2026-09-15).
    The auth test isolation defect is still open.
 5. ~~Re-run the held-out experiment now that both topologies have real
-   tools~~ — **runner fixed** ([PR #27](https://github.com/sh-ai-x/AgentOpsPipeline/pull/27),
+   tools~~ — **runner fixed** ([PR #27](https://github.com/sh-ai-x/WikiGrounded/pull/27),
    2026-09-15) **but the actual re-run is still pending**. `provider=minimax`
    required.
 6. ~~Refresh `docs/EVIDENCE_CARD.md` counts~~ — **done** (2026-09-13): 2 real

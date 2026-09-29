@@ -14,7 +14,7 @@
   [ADR-0008](../../apps/agentops-workbench/docs/adr/0008-github-url-cli-and-deployment-target.md)
   and [phase 08](../08-deployable-mvp/index.md) for the flow that wires
   two of them in.
-- **Build output:** [PR #34](https://github.com/sh-ai-x/AgentOpsPipeline/pull/34)
+- **Build output:** [PR #34](https://github.com/sh-ai-x/WikiGrounded/pull/34)
 
 ## Why this phase exists
 
@@ -143,7 +143,7 @@ Per-source consequences that bind other decisions:
 
 ## Related prior art (not the same initiative)
 
-Repo issue [#22](https://github.com/sh-ai-x/AgentOpsPipeline/issues/22)
+Repo issue [#22](https://github.com/sh-ai-x/WikiGrounded/issues/22)
 proposes `claim_fidelity` — `claim.made` / `claim.audit` events and a
 `false_positive_rate = refuted / audited` reducer — for **dev-kit's own
 harness effectiveness**: whether a *build agent's* completion claims about

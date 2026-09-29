@@ -135,7 +135,7 @@ work is the quality and drift layer on top:
    source would be meaningless.
 
 *Related prior art, not the same initiative:* repo issue
-[#22](https://github.com/sh-ai-x/AgentOpsPipeline/issues/22) proposes a
+[#22](https://github.com/sh-ai-x/WikiGrounded/issues/22) proposes a
 `claim_fidelity` measurement — `claim.made` / `claim.audit` events and a
 `false_positive_rate = refuted / audited` reducer — for **dev-kit's own
 harness effectiveness**, i.e. whether a *build agent's* completion claims

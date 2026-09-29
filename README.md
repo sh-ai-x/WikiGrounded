@@ -6,7 +6,7 @@
 > author can judge and defend; generic customer support is retired from
 > the narrative permanently), built on a general `EvidenceSourceAdapter`
 > pattern with five real, tested implementations
-> ([PR #34](https://github.com/sh-ai-x/AgentOpsPipeline/pull/34)), scoped
+> ([PR #34](https://github.com/sh-ai-x/WikiGrounded/pull/34)), scoped
 > to one flagship flow — `agentops-oss-helper <github-repo-url>` — plus a
 > real deployment target (Fly.io). Full design:
 > [`docs/proposals/agentops-workbench-proposal.md`](docs/proposals/agentops-workbench-proposal.md)

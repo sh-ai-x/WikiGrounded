@@ -1,6 +1,6 @@
 # AgentOps Workbench
 
-> Lives at `apps/agentops-workbench/` inside `sh-ai-x/AgentOpsPipeline`.
+> Lives at `apps/agentops-workbench/` inside `sh-ai-x/WikiGrounded`.
 > All commands below assume you are in this directory.
 
 > **Pivot (2026-09-13):** the portfolio narrative is retargeted from
@@ -13,7 +13,7 @@
 > AI-incident data depending on deployment, plus a ticket-ledger facade
 > proving the pattern also covers the original ticketing use case with
 > zero new domain logic. **All five adapters are real and tested** ([PR
-> #34](https://github.com/sh-ai-x/AgentOpsPipeline/pull/34), merged, 223
+> #34](https://github.com/sh-ai-x/WikiGrounded/pull/34), merged, 223
 > passing) but **not yet wired into `graph/**`** — everything below this
 > note still describes the original ticketing flow end-to-end, which is
 > what actually runs today.

@@ -2,7 +2,7 @@
 
 ## Where this lives
 
-`apps/agentops-workbench/` inside `sh-ai-x/AgentOpsPipeline`.
+`apps/agentops-workbench/` inside `sh-ai-x/WikiGrounded`.
 
 ## What we built
 
