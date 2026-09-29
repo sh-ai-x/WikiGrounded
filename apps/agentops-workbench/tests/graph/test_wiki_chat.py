@@ -34,6 +34,7 @@ import pytest
 
 from agentops_workbench import wiki_corpus
 from agentops_workbench.graph.wiki_chat import (
+    _REFERENCES_FOOTER_MARKER,
     footnote_evidence_blob,
     make_references_block,
     run_wiki_chat,
@@ -180,8 +181,34 @@ def test_answer_includes_references_footer_mapping_citations_to_source_paths(
         "the LLM's numbered citations come through verbatim"
     )
     assert turn.answer == (
-        "Answer cites evidence. [1]\n\n---\nReferences:\n[1] checkpointing.md"
+        f"Answer cites evidence. [1]{_REFERENCES_FOOTER_MARKER}\n[1] checkpointing.md"
     )
+
+
+def test_references_footer_marker_is_single_source_of_truth() -> None:
+    """Both the build site (which appends the footer to `display_answer`)
+    and the split site (which parses `cited_refs` back out in
+    `run_wiki_chat`) must reference the same constant. A maintainer who
+    changes only the build site silently corrupts `cited_refs` parsing
+    -- see review finding F1 on PR #51.
+
+    Pinning here is structural: it asserts the constant is non-empty
+    (so a future refactor can't accidentally `str.split("")`) and that
+    the value contains the literal "References:" (so both the f-string
+    template and the parser agree on what they're splitting on).
+    """
+    assert _REFERENCES_FOOTER_MARKER
+    assert "References:" in _REFERENCES_FOOTER_MARKER
+    # The marker must be expressible in an f-string concatenation against
+    # the raw answer -- the build site uses
+    #     f"{raw_answer}{_REFERENCES_FOOTER_MARKER}\n{references_block}"
+    # and the split site uses
+    #     full_answer.split(_REFERENCES_FOOTER_MARKER, 1)[0]
+    # Both forms round-trip cleanly only when the marker is non-empty.
+    raw = "answer body"
+    block = "[1] checkpointing.md"
+    assembled = f"{raw}{_REFERENCES_FOOTER_MARKER}\n{block}"
+    assert assembled.split(_REFERENCES_FOOTER_MARKER, 1)[0] == raw
 
 
 def test_hits_carry_per_hit_metadata_for_frontend_references_tab(corpus_id: str) -> None:

@@ -57,6 +57,13 @@ _QA_PROMPT = (
     "Question: {query}\n\n## Evidence\n\n{evidence_blob}\n\n## Answer\n"
 )
 
+# Single source of truth for the References footer separator. Both the
+# build site (`_answer_node`, where the footer is appended) and the split
+# site (`run_wiki_chat`, where `cited_refs` is parsed back out) reference
+# this constant. A future maintainer who changes only one site silently
+# corrupts the other -- see review finding F1 on PR #51.
+_REFERENCES_FOOTER_MARKER = "\n\n---\nReferences:"
+
 _NO_EVIDENCE_ANSWER = (
     "I could not find relevant evidence in the picked wiki directory "
     "for that question."
@@ -238,7 +245,7 @@ def _answer_node(state: _WikiChatState, config: RunnableConfig) -> dict[str, Any
     # LLM-generated, so it can't lie about provenance.
     references_block = make_references_block(hits)
     display_answer = (
-        f"{raw_answer}\n\n---\nReferences:\n{references_block}"
+        f"{raw_answer}{_REFERENCES_FOOTER_MARKER}\n{references_block}"
         if references_block
         else raw_answer
     )
@@ -300,8 +307,7 @@ def run_wiki_chat(
     # we listed). The node's `state["answer"]` (raw, no footer) is
     # not directly accessible here, so split on the footer separator.
     full_answer = result["answer"]
-    footer_marker = "\n\n---\nReferences:"
-    raw = full_answer.split(footer_marker, 1)[0]
+    raw = full_answer.split(_REFERENCES_FOOTER_MARKER, 1)[0]
     cited_refs = extract_cited_refs_from_answer(raw)
     return ChatTurn(
         answer=full_answer,
