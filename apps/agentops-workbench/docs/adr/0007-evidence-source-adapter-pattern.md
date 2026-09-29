@@ -50,7 +50,7 @@ Promote the `DocumentClient` Protocol to a named, documented pattern:
 **one `EvidenceSourceAdapter` Protocol, N per-deployment implementations,
 selected by configuration**. This mirrors the two registries the project
 already ships — `TOPOLOGIES` in `graph/topology.py` and the
-`provider ∈ {openai, anthropic, minimax, local-fake}` allow-list from
+`provider ∈ {openai, minimax, local-fake}` allow-list from
 [ADR-0003](0003-provider-abstraction.md) — so there is one idiom for
 "swappable implementation behind a typed interface" instead of three
 ad-hoc ones.

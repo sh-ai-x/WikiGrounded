@@ -1,8 +1,8 @@
-"""Generic OpenAI-compatible adapter — used for `openai` and `anthropic` (deferred).
+"""Generic OpenAI-compatible adapter — used for `provider=openai`.
 
-Note: Anthropic's API is not actually OpenAI-compatible out of the box; this
-adapter is a placeholder that delegates to the openai SDK for `provider=openai`.
-The `provider=anthropic` branch is wired but not exercised until step 4.
+The factory raises `NotImplementedError` for `provider=anthropic` because
+Anthropic's API is not OpenAI-compatible out of the box; this module
+intentionally does not contain a placeholder branch for it.
 """
 from __future__ import annotations
 

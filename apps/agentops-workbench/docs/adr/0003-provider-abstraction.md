@@ -8,11 +8,15 @@ Accepted (2026-09-08).
 
 - Single `LLMAdapter` interface returning normalized usage
   (`provider, model, prompt_tokens, completion_tokens, total_tokens, cost_usd`).
-- Config-driven: `provider ∈ {openai, anthropic, minimax, local-fake}`,
+- Config-driven: `provider ∈ {openai, minimax, local-fake}`,
   `model=<id>`.
 - CI / unit tests: `provider=local-fake` (deterministic, no API calls).
 - Live experiments: `provider=minimax` (default).
-- Other providers (`openai`, `anthropic`) per-experiment via env.
+- Other providers (`openai`) per-experiment via env.
+- `anthropic` is intentionally not supported: the underlying API is not
+  OpenAI-compatible, so a placeholder adapter would 4xx on first chat
+  call. Constructing the adapter raises `NotImplementedError`
+  (`src/agentops_workbench/llm/factory.py`).
 
 ## Consequences
 

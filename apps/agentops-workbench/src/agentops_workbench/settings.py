@@ -93,7 +93,7 @@ class Settings(BaseSettings):
     allow_wiki_metrics_reset: bool = False
 
     # Deliberate second opt-in: lets auto-mint (allow_dev_token) also
-    # cover a real provider (minimax/openai/anthropic), for someone
+    # cover a real provider (minimax/openai), for someone
     # running this locally as a demo with a real API key but without a
     # real login system. Requires BOTH flags explicitly set -- setting
     # a real provider must never, by itself, re-enable an

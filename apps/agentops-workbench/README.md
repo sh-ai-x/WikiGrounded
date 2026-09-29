@@ -65,7 +65,7 @@ Details of the chat surface itself are in
 
 ## Live provider setup
 
-`provider=local-fake` is the dev default. For live experiments, set `provider=minimax` (or `anthropic`). Get a key from your MiniMax dashboard and put it into your local `.env`
+`provider=local-fake` is the dev default. For live experiments, set `provider=minimax`. Get a key from your MiniMax dashboard and put it into your local `.env`
 (this file is gitignored):
 
 ```
@@ -111,7 +111,7 @@ Returns (recomputed on every request):
   "settings": {"provider": "minimax", "model": "MiniMax-M3"},
   "recent_cost_usd": 0.0,
   "caveats": {
-    "cost_usd": "Local-fake always returns 0.0 (fixture is free). For minimax/openai/anthropic, cost is computed locally...",
+    "cost_usd": "Local-fake always returns 0.0 (fixture is free). For minimax/openai, cost is computed locally...",
     "tool_calls": "fixed-v1/single-agent-v1 stay at 0 by design; planner-executor-v1 persists one ToolCall row per executed step (ok for search_docs/read_document, error/unsupported_capability for get_issue)..."
   }
 }
@@ -124,7 +124,7 @@ Returns (recomputed on every request):
 export AGENTOPS_PRICING_JSON='{"my-fine-tune":{"input_per_1m":1.20,"output_per_1m":3.40}}'
 ```
 
-**Tool calls**: `fixed-v1`'s only call is an in-process lexical retrieval — it never makes MCP tool calls, by design (see ADR-0006). `single-agent-v1`'s `TOOL <tool_name> <json_args>` directive now dispatches for real: `search_docs`/`read_document` call a real `DocumentClient` (`InMemoryDocumentClient`, reading `fixtures/docs/*.md`), fed back into the ReAct transcript for the next turn; `get_issue` has no real backend anywhere in this repo and normalises to `outcome.status="error"` with `outcome.error_kind="unsupported_capability"` rather than crashing the loop. `planner-executor-v1` does the same against its own plan/execute/synthesize structure. With `provider=local-fake` (the CI default) neither the ReAct loop nor the planner LLM ever emits a `TOOL`/plan directive, so `tool_calls` stays at 0 under CI for both `single-agent-v1` and `planner-executor-v1`; a live provider (minimax/openai/anthropic) that actually calls a tool produces non-zero `tool_calls`. (The `/_debug/metrics` endpoint's own caveat string still describes the pre-fix `single-agent-v1` stub as of this writing — tracked as a follow-up, not yet corrected in code.)
+**Tool calls**: `fixed-v1`'s only call is an in-process lexical retrieval — it never makes MCP tool calls, by design (see ADR-0006). `single-agent-v1`'s `TOOL <tool_name> <json_args>` directive now dispatches for real: `search_docs`/`read_document` call a real `DocumentClient` (`InMemoryDocumentClient`, reading `fixtures/docs/*.md`), fed back into the ReAct transcript for the next turn; `get_issue` has no real backend anywhere in this repo and normalises to `outcome.status="error"` with `outcome.error_kind="unsupported_capability"` rather than crashing the loop. `planner-executor-v1` does the same against its own plan/execute/synthesize structure. With `provider=local-fake` (the CI default) neither the ReAct loop nor the planner LLM ever emits a `TOOL`/plan directive, so `tool_calls` stays at 0 under CI for both `single-agent-v1` and `planner-executor-v1`; a live provider (minimax/openai) that actually calls a tool produces non-zero `tool_calls`. (The `/_debug/metrics` endpoint's own caveat string still describes the pre-fix `single-agent-v1` stub as of this writing — tracked as a follow-up, not yet corrected in code.)
 
 **CLI equivalent**: `uv run python scripts/print_metrics.py` prints the same numbers from the CLI.
 
@@ -159,7 +159,7 @@ web/ chat turn  --- POST /v1/wiki/qa ----------->  graph/wiki_chat.py
 - **Groundedness**: `groundedness.py` computes the four per-turn metrics; `wiki_metrics.py` keeps the trailing 200-call windows the dashboard reads.
 - **FastAPI**: `POST /v1/wiki/index-files`, `GET /v1/wiki/search`, `POST /v1/wiki/qa`, `GET /v1/wiki/metrics`, plus `GET /v1/auth/dev-token` and `GET /v1/auth/dev-mode` for the local auto-mint path (HS256 JWT, `AGENTOPS_JWT_SECRET` in `.env`).
 - **SQLAlchemy + SQLite** (Postgres in prod): `db/models.py` — the run ledger tables behind the API's persistence layer and `/_debug/metrics`.
-- **Provider**: `{openai, anthropic, minimax, local-fake}` behind `LLMAdapter`; graph code never names a provider.
+- **Provider**: `{openai, minimax, local-fake}` behind `LLMAdapter`; graph code never names a provider.
 
 ## Code layout
 

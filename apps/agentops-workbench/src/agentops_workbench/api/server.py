@@ -411,9 +411,10 @@ def dev_token(principal_id: str = "dev-user") -> DevTokenResponse:
     EITHER `AGENTOPS_PROVIDER=local-fake` (the dev default) OR
     `AGENTOPS_DEV_TOKEN_ANY_PROVIDER=1` (a deliberate second opt-in for
     a local/demo run against a real provider). A real deployment with
-    `provider=minimax|openai|anthropic` and only the first flag set
+    `provider=minimax|openai` and only the first flag set
     still gets a 403 -- prevents accidentally shipping dev-mode auth to
-    prod.
+    prod. (`provider=anthropic` raises `NotImplementedError` at
+    adapter construction, so dev-token auth never even runs.)
     """
     if not _dev_token_allowed():
         raise HTTPException(
@@ -510,7 +511,7 @@ def debug_metrics() -> dict:
         "recent_cost_usd": dev_metrics.recent_cost_usd(),
         "caveats": {
             "cost_usd": (
-                "Local-fake always returns 0.0 (fixture is free). For minimax/openai/anthropic, "
+                "Local-fake always returns 0.0 (fixture is free). For minimax/openai, "
                 "cost is computed locally as prompt_tokens/1M * input_per_1m + "
                 "completion_tokens/1M * output_per_1m; edit "
                 "src/agentops_workbench/llm/pricing.py DEFAULT_PRICING or set "

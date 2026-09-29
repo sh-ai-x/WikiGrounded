@@ -55,5 +55,4 @@ for c in held:
 AGENTOPS_PROVIDER=minimax    # live; needs MINIMAX_API_KEY in .env
 AGENTOPS_PROVIDER=local-fake # CI / unit tests; no key needed
 AGENTOPS_PROVIDER=openai     # requires OPENAI_API_KEY
-AGENTOPS_PROVIDER=anthropic  # requires ANTHROPIC_API_KEY (stub in MVP)
 \`\`\`
