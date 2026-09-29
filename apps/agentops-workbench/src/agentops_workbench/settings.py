@@ -26,7 +26,6 @@ class Settings(BaseSettings):
     minimax_api_key: str = ""
     minimax_base_url: str = "https://api.minimax.chat/v1"
     openai_api_key: str = ""
-    anthropic_api_key: str = ""
 
     # Reasoning effort for GPT-5-family / o1 / o3 "reasoning" models on
     # OpenAI's Chat Completions API (`OpenAICompatAdapter`) -- controls how
