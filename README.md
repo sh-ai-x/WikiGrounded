@@ -1,4 +1,9 @@
-# AgentOps Workbench
+# WikiGrounded
+
+> The flagship (and, for now, only) implementation lives in
+> [`apps/agentops-workbench/`](apps/agentops-workbench/) — that
+> subdirectory and its Python package keep their original name;
+> only the project/repo identity above changed.
 
 > **Pivot (2026-09-13).** The description below is the historical scope —
 > left as written, not deleted. The portfolio narrative has moved to
