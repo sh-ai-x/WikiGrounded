@@ -1,4 +1,4 @@
-# Phases — AgentOpsPipeline
+# Phases — WikiGrounded
 
 > Retrospective phase index for the AgentOps Workbench build. Each phase is a
 > proposal-anchored milestone with an exit criterion and a set of shipped
@@ -21,7 +21,7 @@
 > **Amended 2026-09-13.** A new **Phase 7** was added by the portfolio pivot
 > to open-source maintainer tooling (proposal §"Pivot (2026-09-13)",
 > [ADR-0007](../apps/agentops-workbench/docs/adr/0007-evidence-source-adapter-pattern.md)).
-> [PR #34](https://github.com/sh-ai-x/AgentOpsPipeline/pull/34)
+> [PR #34](https://github.com/sh-ai-x/WikiGrounded/pull/34)
 > (merged) implements all five adapters, 223 tests passing; the
 > registry/config layer and Pillar 2's eval layer are the remaining gaps
 > (see [`07-adapter-pattern-pivot/index.md`](07-adapter-pattern-pivot/index.md)'s
@@ -104,8 +104,8 @@ primary-metric signal. The common cause: the agent never issues tool calls —
 `graph/single_agent.py` and `graph/planner_executor.py` both carried
 `# Tool dispatch is a stub for MVP; step 6 wires real MCP calls`.
 
-**Update 2026-09-13:** [PR #20](https://github.com/sh-ai-x/AgentOpsPipeline/pull/20)
-+ [PR #21](https://github.com/sh-ai-x/AgentOpsPipeline/pull/21) removed
+**Update 2026-09-13:** [PR #20](https://github.com/sh-ai-x/WikiGrounded/pull/20)
++ [PR #21](https://github.com/sh-ai-x/WikiGrounded/pull/21) removed
 `planner_executor.py`'s half of that stub — it now genuinely calls
 `search_docs`/`read_document` and honestly reports `get_issue` as
 unsupported (no backing data source exists for it) instead of no-op'ing.
@@ -185,7 +185,7 @@ describe how the agent runs, not the monorepo layout). Project-level index:
   GitHub-issue / security-log / incident-log / ticket-system adapters.
   Architecture (LangGraph topologies, MCP tool execution, FastAPI surface,
   benchmark harness) is unchanged. All five adapters are implemented and
-  tested in [PR #34](https://github.com/sh-ai-x/AgentOpsPipeline/pull/34)
+  tested in [PR #34](https://github.com/sh-ai-x/WikiGrounded/pull/34)
   (merged, 223 tests passing) — the registry/config layer and Pillar 2's
   eval layer remain open. See
   [`07-adapter-pattern-pivot/index.md`](07-adapter-pattern-pivot/index.md),
