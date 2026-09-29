@@ -57,6 +57,13 @@ _QA_PROMPT = (
     "Question: {query}\n\n## Evidence\n\n{evidence_blob}\n\n## Answer\n"
 )
 
+# Single source of truth for the References footer separator. Both the
+# build site (`_answer_node`, where the footer is appended) and the split
+# site (`run_wiki_chat`, where `cited_refs` is parsed back out) reference
+# this constant. A future maintainer who changes only one site silently
+# corrupts the other -- see review finding F1 on PR #51.
+_REFERENCES_FOOTER_MARKER = "\n\n---\nReferences:"
+
 _NO_EVIDENCE_ANSWER = (
     "I could not find relevant evidence in the picked wiki directory "
     "for that question."
@@ -229,12 +236,26 @@ def _answer_node(state: _WikiChatState, config: RunnableConfig) -> dict[str, Any
     # whether the LLM cited them.
     faithful = groundedness.answer_faithfulness(scores, score_input)
 
+    # Append the deterministic References footer to the DISPLAYED
+    # answer only. Never to `history` (a follow-up turn shouldn't
+    # re-pay the previous turn's footer tokens -- see module
+    # docstring) and never to `raw_answer` itself (already scored
+    # above; the footer is not part of the LLM's claims). The footer
+    # maps each [N] the LLM cited back to a real source_path -- never
+    # LLM-generated, so it can't lie about provenance.
+    references_block = make_references_block(hits)
+    display_answer = (
+        f"{raw_answer}{_REFERENCES_FOOTER_MARKER}\n{references_block}"
+        if references_block
+        else raw_answer
+    )
+
     new_turns = [
         {"role": "user", "content": query},
         {"role": "assistant", "content": raw_answer},
     ]
     return {
-        "answer": raw_answer,
+        "answer": display_answer,
         "sentences": [s.to_dict() for s in scores],
         "overall_rouge_l_f1": overall_rouge_l,
         "citation_recall": cit_recall,
@@ -286,8 +307,7 @@ def run_wiki_chat(
     # we listed). The node's `state["answer"]` (raw, no footer) is
     # not directly accessible here, so split on the footer separator.
     full_answer = result["answer"]
-    footer_marker = "\n\n---\nReferences:"
-    raw = full_answer.split(footer_marker, 1)[0]
+    raw = full_answer.split(_REFERENCES_FOOTER_MARKER, 1)[0]
     cited_refs = extract_cited_refs_from_answer(raw)
     return ChatTurn(
         answer=full_answer,

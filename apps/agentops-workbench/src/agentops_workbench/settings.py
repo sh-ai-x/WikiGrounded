@@ -82,6 +82,17 @@ class Settings(BaseSettings):
     # (default) and route JWTs through an ID provider (Auth0/Cognito/etc).
     allow_dev_token: bool = False
 
+    # Dev/demo path: when True, exposes POST /v1/wiki/metrics/reset, which
+    # wipes the process-wide wiki search/groundedness rolling windows
+    # shared across every authenticated session. The MetricsPanel UI
+    # calls it on mount so a fresh browser tab doesn't inherit samples
+    # from earlier sessions, but the same call is also an authenticated
+    # IDOR (any JWT-gated principal can zero every other session's
+    # observability) -- defaulting to False keeps prod deployments
+    # safe even if someone POSTs at the endpoint. Off-by-default mirrors
+    # `allow_dev_token` so neither dev convenience opens by accident.
+    allow_wiki_metrics_reset: bool = False
+
     # Deliberate second opt-in: lets auto-mint (allow_dev_token) also
     # cover a real provider (minimax/openai/anthropic), for someone
     # running this locally as a demo with a real API key but without a

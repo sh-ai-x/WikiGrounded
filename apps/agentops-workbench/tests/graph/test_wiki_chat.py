@@ -34,6 +34,7 @@ import pytest
 
 from agentops_workbench import wiki_corpus
 from agentops_workbench.graph.wiki_chat import (
+    _REFERENCES_FOOTER_MARKER,
     footnote_evidence_blob,
     make_references_block,
     run_wiki_chat,
@@ -161,26 +162,53 @@ def test_run_wiki_chat_short_circuits_when_no_evidence(corpus_id: str) -> None:
     assert turn.citation_recall == 0.0
 
 
-def test_answer_returns_llm_text_only_no_appended_references_footer(corpus_id: str) -> None:
-    """The backend does not append a References footer to the answer
-    anymore -- the frontend owns references (built from `turn.hits`).
-    This test pins the new contract: the LLM's prose comes back
-    verbatim, with the [1] markers the LLM chose to emit (the
-    frontend will render those markers in a separate tab, not in
-    the chat bubble body)."""
+def test_answer_includes_references_footer_mapping_citations_to_source_paths(
+    corpus_id: str,
+) -> None:
+    """The displayed answer carries the LLM's prose verbatim PLUS a
+    deterministic References footer mapping each [N] marker back to
+    its real source_path -- restored per operator request (chat UI
+    used to show this inline; a prior refactor moved it to a
+    frontend-only tab built from `turn.hits`, which regressed the
+    visible chat-bubble experience). The mapping is never
+    LLM-generated (it could lie about provenance); `make_references_
+    block` builds it straight from the retrieved hits, same as
+    before."""
     adapter = _StubAdapter(["Answer cites evidence. [1]"])
     turn = run_wiki_chat(adapter, corpus_id, "checkpointing", thread_id="t-refs")
     assert "Answer cites evidence" in turn.answer
     assert "[1]" in turn.answer, (
-        "the LLM's numbered citations come through verbatim; the "
-        "frontend will route them to a separate References tab"
+        "the LLM's numbered citations come through verbatim"
     )
-    # Server must NOT append a References footer -- that's a
-    # frontend concern now.
-    assert "References:" not in turn.answer, (
-        "the server should pass through only the LLM's text; the "
-        "References block is rendered by the frontend from `turn.hits`"
+    assert turn.answer == (
+        f"Answer cites evidence. [1]{_REFERENCES_FOOTER_MARKER}\n[1] checkpointing.md"
     )
+
+
+def test_references_footer_marker_is_single_source_of_truth() -> None:
+    """Both the build site (which appends the footer to `display_answer`)
+    and the split site (which parses `cited_refs` back out in
+    `run_wiki_chat`) must reference the same constant. A maintainer who
+    changes only the build site silently corrupts `cited_refs` parsing
+    -- see review finding F1 on PR #51.
+
+    Pinning here is structural: it asserts the constant is non-empty
+    (so a future refactor can't accidentally `str.split("")`) and that
+    the value contains the literal "References:" (so both the f-string
+    template and the parser agree on what they're splitting on).
+    """
+    assert _REFERENCES_FOOTER_MARKER
+    assert "References:" in _REFERENCES_FOOTER_MARKER
+    # The marker must be expressible in an f-string concatenation against
+    # the raw answer -- the build site uses
+    #     f"{raw_answer}{_REFERENCES_FOOTER_MARKER}\n{references_block}"
+    # and the split site uses
+    #     full_answer.split(_REFERENCES_FOOTER_MARKER, 1)[0]
+    # Both forms round-trip cleanly only when the marker is non-empty.
+    raw = "answer body"
+    block = "[1] checkpointing.md"
+    assembled = f"{raw}{_REFERENCES_FOOTER_MARKER}\n{block}"
+    assert assembled.split(_REFERENCES_FOOTER_MARKER, 1)[0] == raw
 
 
 def test_hits_carry_per_hit_metadata_for_frontend_references_tab(corpus_id: str) -> None:

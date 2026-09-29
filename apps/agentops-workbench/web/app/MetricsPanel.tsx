@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 // Shape returned by GET /v1/wiki/metrics. The frontend is permissive
 // about extra fields -- only the ones rendered here are required,
@@ -82,6 +82,21 @@ export default function MetricsPanel({
   const [data, setData] = useState<MetricsResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [interval, setInterval_] = useState<PollInterval>(5);
+  // The metrics recorders are process-wide singletons on the backend,
+  // so a long-running dev server keeps accumulating samples across
+  // browser refreshes -- a new tab would otherwise inherit whatever
+  // the previous session left in the rolling window. Fire a one-time
+  // reset the moment a bearer becomes available (before the first
+  // poll) so each fresh page load starts its own window at zero.
+  //
+  // Keyed on the bearer itself so that switching tokens retries the
+  // reset (a stale boolean for the previous token would leave the new
+  // principal inheriting the old session's window). Set the marker
+  // only AFTER a successful response -- marking it before the await
+  // means a single transient failure (network blip, expired token,
+  // 5xx) locks out the fresh-start reset for the rest of the
+  // session, silently defeating the change's whole purpose.
+  const resetSentFor = useRef<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -92,6 +107,21 @@ export default function MetricsPanel({
       if (!bearer) {
         if (!cancelled) setError("awaiting auth (paste a Bearer token)");
         return;
+      }
+      if (resetSentFor.current !== bearer) {
+        try {
+          const r = await fetch("/api/v1/wiki/metrics/reset", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${bearer}` },
+          });
+          if (r.ok) {
+            resetSentFor.current = bearer;
+          }
+        } catch {
+          // Non-fatal: leave resetSentFor.current unchanged so the
+          // next poll retries. Worst case this tab shows a stale
+          // window instead of a fresh one -- the poll below still runs.
+        }
       }
       try {
         const r = await fetch("/api/v1/wiki/metrics", {

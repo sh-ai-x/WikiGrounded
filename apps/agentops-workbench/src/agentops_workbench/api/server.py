@@ -987,6 +987,38 @@ def wiki_metrics_endpoint(
     }
 
 
+@app.post("/v1/wiki/metrics/reset")
+def wiki_metrics_reset(
+    principal_id: str = Depends(require_principal),
+) -> dict[str, Any]:
+    """Reset the in-memory rolling metrics for the wiki chat surface.
+
+    Intended for the dev/demo path: when a new browser session starts,
+    the dashboard would otherwise show stale server-uptime averages
+    left over from the previous session. The UI's MetricsPanel calls
+    this on mount so each fresh page-load starts at zero and builds up
+    only from that session's chats.
+
+    Production posture: gated on `AGENTOPS_ALLOW_WIKI_METRICS_RESET`.
+    Both recorders are module-level singletons, so a successful call
+    clears them for every active session sharing the server process
+    -- any authenticated principal could otherwise wipe another
+    session's observability (IDOR). Off-by-default keeps prod safe;
+    flip it on for the dev/demo path where the MetricsPanel is useful.
+    """
+    if not get_settings().allow_wiki_metrics_reset:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="metrics reset is disabled (set AGENTOPS_ALLOW_WIKI_METRICS_RESET=true to enable)",
+        )
+    search_metrics.reset_for_tests()
+    groundedness_metrics.reset_for_tests()
+    return {
+        "latency": search_metrics.stats(),
+        "groundedness": groundedness_metrics.stats(),
+    }
+
+
 # LLMProviderError.kind -> (HTTP status, detail template). `quota_exceeded`
 # and `rate_limited` get 429 (retryable by the caller, in principle -- a
 # quota_exceeded retry will just fail again until the account is topped up,
