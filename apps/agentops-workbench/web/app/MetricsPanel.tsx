@@ -88,7 +88,15 @@ export default function MetricsPanel({
   // the previous session left in the rolling window. Fire a one-time
   // reset the moment a bearer becomes available (before the first
   // poll) so each fresh page load starts its own window at zero.
-  const resetSentRef = useRef(false);
+  //
+  // Keyed on the bearer itself so that switching tokens retries the
+  // reset (a stale boolean for the previous token would leave the new
+  // principal inheriting the old session's window). Set the marker
+  // only AFTER a successful response -- marking it before the await
+  // means a single transient failure (network blip, expired token,
+  // 5xx) locks out the fresh-start reset for the rest of the
+  // session, silently defeating the change's whole purpose.
+  const resetSentFor = useRef<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -100,16 +108,19 @@ export default function MetricsPanel({
         if (!cancelled) setError("awaiting auth (paste a Bearer token)");
         return;
       }
-      if (!resetSentRef.current) {
-        resetSentRef.current = true;
+      if (resetSentFor.current !== bearer) {
         try {
-          await fetch("/api/v1/wiki/metrics/reset", {
+          const r = await fetch("/api/v1/wiki/metrics/reset", {
             method: "POST",
             headers: { Authorization: `Bearer ${bearer}` },
           });
+          if (r.ok) {
+            resetSentFor.current = bearer;
+          }
         } catch {
-          // Non-fatal: worst case this tab shows a stale window
-          // instead of a fresh one. The poll below still runs.
+          // Non-fatal: leave resetSentFor.current unchanged so the
+          // next poll retries. Worst case this tab shows a stale
+          // window instead of a fresh one -- the poll below still runs.
         }
       }
       try {

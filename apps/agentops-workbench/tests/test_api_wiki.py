@@ -907,13 +907,25 @@ def test_metrics_endpoint_is_auth_gated(client: TestClient) -> None:
     assert r.status_code == 401
 
 
-def test_metrics_reset_clears_both_recorders(client: TestClient, bearer: dict) -> None:
+def test_metrics_reset_clears_both_recorders(client: TestClient, bearer: dict, monkeypatch: pytest.MonkeyPatch) -> None:
     """POST /v1/wiki/metrics/reset zeroes both the latency and
     groundedness rolling windows. This is what the web UI calls once
     on page mount so a fresh browser tab doesn't inherit whatever a
-    long-running dev server accumulated from earlier sessions."""
+    long-running dev server accumulated from earlier sessions.
+
+    The endpoint is gated on AGENTOPS_ALLOW_WIKI_METRICS_RESET (off by
+    default, see F1 in the PR #51 review). Flip it on for this test
+    so we exercise the clear path; the disabled-path behavior is
+    pinned separately below."""
+    from agentops_workbench import settings as settings_mod
     from agentops_workbench.api import server as server_mod
     from agentops_workbench.wiki_metrics import GroundednessSample, StageSample
+
+    # The endpoint reads `get_settings()` per-call, but Settings is a
+    # cached singleton; invalidate so the env change actually shows
+    # up in the next request.
+    monkeypatch.setenv("AGENTOPS_ALLOW_WIKI_METRICS_RESET", "1")
+    settings_mod._settings = None
 
     # These recorders are process-wide singletons shared across every
     # test in this session -- clear them first so an earlier test's
@@ -948,6 +960,21 @@ def test_metrics_reset_clears_both_recorders(client: TestClient, bearer: dict) -
 def test_metrics_reset_is_auth_gated(client: TestClient) -> None:
     r = client.post("/v1/wiki/metrics/reset")
     assert r.status_code == 401
+
+
+def test_metrics_reset_returns_403_when_disabled(client: TestClient, bearer: dict, monkeypatch: pytest.MonkeyPatch) -> None:
+    """The reset endpoint is OFF BY DEFAULT -- an authenticated IDOR
+    wipe of the shared singleton recorders must not be possible in
+    production, so production-shape callers get a 403 instead of
+    silently clearing another session's observability. The dev/demo
+    path that needs this behavior flips the flag explicitly."""
+    from agentops_workbench import settings as settings_mod
+
+    monkeypatch.setenv("AGENTOPS_ALLOW_WIKI_METRICS_RESET", "0")
+    settings_mod._settings = None
+
+    r = client.post("/v1/wiki/metrics/reset", headers=bearer)
+    assert r.status_code == 403
 
 
 # ---- Obsidian deep links on hit titles ----

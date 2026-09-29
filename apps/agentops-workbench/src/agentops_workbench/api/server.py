@@ -999,12 +999,18 @@ def wiki_metrics_reset(
     this on mount so each fresh page-load starts at zero and builds up
     only from that session's chats.
 
-    Production posture: deliberately unauthenticated-shaped, but the
-    `principal_id` dependency keeps the same JWT gate as the GET
-    endpoint so anonymous probes can't reset other users' metrics.
-    Both recorders are module-level singletons -- one reset clears
-    them for every active session sharing the server process.
+    Production posture: gated on `AGENTOPS_ALLOW_WIKI_METRICS_RESET`.
+    Both recorders are module-level singletons, so a successful call
+    clears them for every active session sharing the server process
+    -- any authenticated principal could otherwise wipe another
+    session's observability (IDOR). Off-by-default keeps prod safe;
+    flip it on for the dev/demo path where the MetricsPanel is useful.
     """
+    if not get_settings().allow_wiki_metrics_reset:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="metrics reset is disabled (set AGENTOPS_ALLOW_WIKI_METRICS_RESET=true to enable)",
+        )
     search_metrics.reset_for_tests()
     groundedness_metrics.reset_for_tests()
     return {
