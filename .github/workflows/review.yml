@@ -427,26 +427,26 @@ jobs:
               verdict_source="comments-fallback"
               agent_ran="true"
             else
-              # Issue #625 follow-up: when the MiniMax provider drops the
-              # assistant stream AND the 30s retry-loop exhausts without
-              # finding the agent's claude[bot] verdict comment, the
-              # previous behavior was PARSE_FAILED -> gate hard-fail with
-              # the #612 remediation message. But in practice this exact
-              # pattern occurs on a CLEAN review: the agent ran, posted
-              # a valid "Verdict: Approve" PR comment, the file parser
-              # couldn't read the wrapper envelope, and the comments
-              # fallback lost the race by ~10-30s. Hard-failing here
-              # masked real "agent says Approve" reviews as install bugs.
-              # The distinguishing signal is that extract-verdict.py was
-              # able to PARSE the execution file (otherwise the gate
-              # would have routed through the agent_ran=false / default-
-              # approve-no-file arms above). Treat this as a transient
-              # infrastructure issue and default to Approve with a
-              # warning -- the human gate (REVIEW_REQUIRED /
-              # CHANGES_REQUESTED on the PR) remains the merge block.
-              echo "::warning::review PARSE_FAILED + comments-fallback exhausted; treating as transient (MiniMax wrapper race). Defaulting to Approve. The agent's verdict PR comment is still visible on the PR for human review."
-              verdict="Approve"
-              verdict_source="default-approve-parse-failed-recovered-comments"
+              # Issue #69 fix: previous behavior default-Approve on
+              # PARSE_FAILED + comments-fallback-exhausted silently
+              # masked unresolved Changes Requested verdicts. A prior
+              # LLM review may have posted "Verdict: Changes Requested"
+              # on the PR; the cutoff filter correctly excludes the
+              # stale comment, but if the new agent run's output is
+              # unparseable AND its own PR comment was never posted,
+              # defaulting to Approve lets a 🟠-major finding through.
+              # The comment at lines 443-446 (MiniMax wrapper race) is
+              # the historical justification; issue #69 supersedes it.
+              # Default to Changes Requested so the gate fails the PR
+              # and forces a fresh agent run (or a human override).
+              # Operator remediation: trigger workflow_dispatch again
+              # once the upstream parser race is understood, or set the
+              # PR's reviewDecision manually to Approve if the prior
+              # Changes Requested was already addressed by a follow-up
+              # commit.
+              echo "::warning::review PARSE_FAILED + comments-fallback exhausted; defaulting to Changes Requested to prevent silent-Approve on unresolved verdicts (issue #69). Re-run via workflow_dispatch or fix upstream parser race."
+              verdict="Changes Requested"
+              verdict_source="default-changes-requested-parse-failed-no-recovery"
               agent_ran="true"
             fi
           fi
@@ -496,8 +496,17 @@ jobs:
             exit 0
           fi
           if [ "$R" = "PARSE_FAILED" ] || [ -z "$R" ]; then
-            echo "::warning::Review verdict empty/parse-failed (result=$R_RESULT); treating as non-blocking per empty-verdict contract."
-            exit 0
+            # Issue #69 fix: the previous "empty-verdict contract" treated
+            # PARSE_FAILED and empty as non-blocking. Combined with the
+            # review job's default-Approve on parse-failed-no-recovery
+            # (now fixed to default Changes Requested in #69 above), this
+            # two-layer default silently passed PRs with unresolved review
+            # verdicts. Fail the gate instead -- a missing or unparseable
+            # verdict is the opposite of "non-blocking"; the agent
+            # must either produce a parseable output or a human must
+            # explicitly approve.
+            echo "::error::Review verdict is missing/unparseable (result=$R_RESULT). The agent's review output was not parseable AND no recent PR comment contained a 'Verdict:' line for this run. Gate fails to prevent silent-Approve on unresolved verdicts (issue #69). Re-trigger review via workflow_dispatch or set the PR's reviewDecision manually."
+            exit 1
           fi
           echo "::error::Review verdict is '$R' (not Approve); gate fails."
           exit 1
