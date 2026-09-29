@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 // Shape returned by GET /v1/wiki/metrics. The frontend is permissive
 // about extra fields -- only the ones rendered here are required,
@@ -82,6 +82,13 @@ export default function MetricsPanel({
   const [data, setData] = useState<MetricsResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [interval, setInterval_] = useState<PollInterval>(5);
+  // The metrics recorders are process-wide singletons on the backend,
+  // so a long-running dev server keeps accumulating samples across
+  // browser refreshes -- a new tab would otherwise inherit whatever
+  // the previous session left in the rolling window. Fire a one-time
+  // reset the moment a bearer becomes available (before the first
+  // poll) so each fresh page load starts its own window at zero.
+  const resetSentRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -92,6 +99,18 @@ export default function MetricsPanel({
       if (!bearer) {
         if (!cancelled) setError("awaiting auth (paste a Bearer token)");
         return;
+      }
+      if (!resetSentRef.current) {
+        resetSentRef.current = true;
+        try {
+          await fetch("/api/v1/wiki/metrics/reset", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${bearer}` },
+          });
+        } catch {
+          // Non-fatal: worst case this tab shows a stale window
+          // instead of a fresh one. The poll below still runs.
+        }
       }
       try {
         const r = await fetch("/api/v1/wiki/metrics", {

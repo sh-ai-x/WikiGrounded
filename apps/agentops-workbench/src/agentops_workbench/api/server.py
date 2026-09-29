@@ -987,6 +987,32 @@ def wiki_metrics_endpoint(
     }
 
 
+@app.post("/v1/wiki/metrics/reset")
+def wiki_metrics_reset(
+    principal_id: str = Depends(require_principal),
+) -> dict[str, Any]:
+    """Reset the in-memory rolling metrics for the wiki chat surface.
+
+    Intended for the dev/demo path: when a new browser session starts,
+    the dashboard would otherwise show stale server-uptime averages
+    left over from the previous session. The UI's MetricsPanel calls
+    this on mount so each fresh page-load starts at zero and builds up
+    only from that session's chats.
+
+    Production posture: deliberately unauthenticated-shaped, but the
+    `principal_id` dependency keeps the same JWT gate as the GET
+    endpoint so anonymous probes can't reset other users' metrics.
+    Both recorders are module-level singletons -- one reset clears
+    them for every active session sharing the server process.
+    """
+    search_metrics.reset_for_tests()
+    groundedness_metrics.reset_for_tests()
+    return {
+        "latency": search_metrics.stats(),
+        "groundedness": groundedness_metrics.stats(),
+    }
+
+
 # LLMProviderError.kind -> (HTTP status, detail template). `quota_exceeded`
 # and `rate_limited` get 429 (retryable by the caller, in principle -- a
 # quota_exceeded retry will just fail again until the account is topped up,

@@ -907,6 +907,49 @@ def test_metrics_endpoint_is_auth_gated(client: TestClient) -> None:
     assert r.status_code == 401
 
 
+def test_metrics_reset_clears_both_recorders(client: TestClient, bearer: dict) -> None:
+    """POST /v1/wiki/metrics/reset zeroes both the latency and
+    groundedness rolling windows. This is what the web UI calls once
+    on page mount so a fresh browser tab doesn't inherit whatever a
+    long-running dev server accumulated from earlier sessions."""
+    from agentops_workbench.api import server as server_mod
+    from agentops_workbench.wiki_metrics import GroundednessSample, StageSample
+
+    # These recorders are process-wide singletons shared across every
+    # test in this session -- clear them first so an earlier test's
+    # samples don't pollute the count assertions below.
+    server_mod.search_metrics.reset_for_tests()
+    server_mod.groundedness_metrics.reset_for_tests()
+    server_mod.search_metrics.record(
+        StageSample(tokenize_ms=1.0, score_ms=1.0, sort_and_return_ms=1.0, total_ms=3.0)
+    )
+    server_mod.groundedness_metrics.record(
+        GroundednessSample(
+            rouge_l_f1=0.5, citation_recall=0.5, citation_precision=0.5, faithfulness=0.5
+        )
+    )
+    before = client.get("/v1/wiki/metrics", headers=bearer).json()
+    assert before["latency"]["total_ms"]["count"] == 1
+    assert before["groundedness"]["sample_count"] == 1
+
+    r = client.post("/v1/wiki/metrics/reset", headers=bearer)
+    assert r.status_code == 200
+    after = r.json()
+    assert after["latency"]["total_ms"]["count"] == 0
+    assert after["groundedness"]["sample_count"] == 0
+    assert after["groundedness"]["faithfulness_avg"] == 0.0
+
+    # And the follow-up GET reflects the same cleared state.
+    confirmed = client.get("/v1/wiki/metrics", headers=bearer).json()
+    assert confirmed["latency"]["total_ms"]["count"] == 0
+    assert confirmed["groundedness"]["sample_count"] == 0
+
+
+def test_metrics_reset_is_auth_gated(client: TestClient) -> None:
+    r = client.post("/v1/wiki/metrics/reset")
+    assert r.status_code == 401
+
+
 # ---- Obsidian deep links on hit titles ----
 
 

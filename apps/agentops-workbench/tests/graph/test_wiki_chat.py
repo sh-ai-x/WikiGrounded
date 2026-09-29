@@ -161,25 +161,26 @@ def test_run_wiki_chat_short_circuits_when_no_evidence(corpus_id: str) -> None:
     assert turn.citation_recall == 0.0
 
 
-def test_answer_returns_llm_text_only_no_appended_references_footer(corpus_id: str) -> None:
-    """The backend does not append a References footer to the answer
-    anymore -- the frontend owns references (built from `turn.hits`).
-    This test pins the new contract: the LLM's prose comes back
-    verbatim, with the [1] markers the LLM chose to emit (the
-    frontend will render those markers in a separate tab, not in
-    the chat bubble body)."""
+def test_answer_includes_references_footer_mapping_citations_to_source_paths(
+    corpus_id: str,
+) -> None:
+    """The displayed answer carries the LLM's prose verbatim PLUS a
+    deterministic References footer mapping each [N] marker back to
+    its real source_path -- restored per operator request (chat UI
+    used to show this inline; a prior refactor moved it to a
+    frontend-only tab built from `turn.hits`, which regressed the
+    visible chat-bubble experience). The mapping is never
+    LLM-generated (it could lie about provenance); `make_references_
+    block` builds it straight from the retrieved hits, same as
+    before."""
     adapter = _StubAdapter(["Answer cites evidence. [1]"])
     turn = run_wiki_chat(adapter, corpus_id, "checkpointing", thread_id="t-refs")
     assert "Answer cites evidence" in turn.answer
     assert "[1]" in turn.answer, (
-        "the LLM's numbered citations come through verbatim; the "
-        "frontend will route them to a separate References tab"
+        "the LLM's numbered citations come through verbatim"
     )
-    # Server must NOT append a References footer -- that's a
-    # frontend concern now.
-    assert "References:" not in turn.answer, (
-        "the server should pass through only the LLM's text; the "
-        "References block is rendered by the frontend from `turn.hits`"
+    assert turn.answer == (
+        "Answer cites evidence. [1]\n\n---\nReferences:\n[1] checkpointing.md"
     )
 
 

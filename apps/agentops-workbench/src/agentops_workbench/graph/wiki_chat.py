@@ -229,12 +229,26 @@ def _answer_node(state: _WikiChatState, config: RunnableConfig) -> dict[str, Any
     # whether the LLM cited them.
     faithful = groundedness.answer_faithfulness(scores, score_input)
 
+    # Append the deterministic References footer to the DISPLAYED
+    # answer only. Never to `history` (a follow-up turn shouldn't
+    # re-pay the previous turn's footer tokens -- see module
+    # docstring) and never to `raw_answer` itself (already scored
+    # above; the footer is not part of the LLM's claims). The footer
+    # maps each [N] the LLM cited back to a real source_path -- never
+    # LLM-generated, so it can't lie about provenance.
+    references_block = make_references_block(hits)
+    display_answer = (
+        f"{raw_answer}\n\n---\nReferences:\n{references_block}"
+        if references_block
+        else raw_answer
+    )
+
     new_turns = [
         {"role": "user", "content": query},
         {"role": "assistant", "content": raw_answer},
     ]
     return {
-        "answer": raw_answer,
+        "answer": display_answer,
         "sentences": [s.to_dict() for s in scores],
         "overall_rouge_l_f1": overall_rouge_l,
         "citation_recall": cit_recall,
