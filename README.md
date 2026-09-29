@@ -49,7 +49,7 @@ plus per-stage latency, with Obsidian deep-links back to the source
 notes. Full detail in
 [`apps/agentops-workbench/README.md#web-ui-wiki-chat`](apps/agentops-workbench/README.md#web-ui-wiki-chat).
 
-![AgentOps Wiki — directory picker card plus the live groundedness dashboard showing Citation Precision, Citation Recall, ROUGE-L F1, Faithfulness and per-stage latency](apps/agentops-workbench/docs/screenshots/01_wiki_chat_dashboard.png)
+![AgentOps Wiki — a multi-turn chat against the operator's local mywiki corpus (377 .md files indexed in 204 ms with TF-IDF retrieval): the second turn asks about retrieval-layer metrics, the assistant answers with inline [1]-[5] citations to defense-in-depth, retrieval-evaluation, metrics-monitoring, strix and rag-evaluation notes, per-turn ROUGE-L F1 / Citation Recall / Citation Precision / Faithfulness all populated from real groundedness scoring, references panel showing real retrieval scores and coverage, and the live accuracy + per-stage latency dashboard polling every 5s](apps/agentops-workbench/docs/screenshots/01_wiki_chat_dashboard.png)
 
 ---
 
