@@ -56,12 +56,12 @@ def make_adapter(settings: Settings, *, provider: str | None = None) -> LLMAdapt
             reasoning_effort=settings.reasoning_effort,
         )
     if p == "anthropic":
-        from .openai_compat import OpenAICompatAdapter
-
-        return OpenAICompatAdapter(
-            api_key=settings.anthropic_api_key,
-            base_url="https://api.anthropic.com/v1",
-            model=model,
-            provider_label="anthropic",
+        # Anthropic's API is not OpenAI-compatible out of the box; shipping
+        # a stub adapter against api.anthropic.com/v1 would 4xx on the first
+        # call. Provider=anthropic is intentionally not implemented yet;
+        # raise loudly rather than fail silently.
+        raise NotImplementedError(
+            "provider=anthropic is not implemented yet (Anthropic's API is "
+            "not OpenAI-compatible; need a separate adapter)"
         )
     raise ValueError(f"unknown provider: {p!r}")
