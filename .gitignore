@@ -78,3 +78,5 @@ logs/
 
 # Local measurement / trace (apps/* variant)
 apps/*/.dev-kit/trace/
+tmp/
+.env.bak

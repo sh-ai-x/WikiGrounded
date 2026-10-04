@@ -361,7 +361,12 @@ function MetricsGuide({
 }
 
 export default function HomePageImpl() {
-  const [bearer, setBearer] = useState("");
+  // Initial bearer: env-baked (NEXT_PUBLIC_AGENTOPS_DEV_BEARER) wins,
+  // else fall through to dev-mint probe below. setBearer stays callable
+  // so the user can still paste a different token.
+  const [bearer, setBearer] = useState(
+    process.env.NEXT_PUBLIC_AGENTOPS_DEV_BEARER ?? "",
+  );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [authMode, setAuthMode] = useState<
