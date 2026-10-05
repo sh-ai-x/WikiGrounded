@@ -82,6 +82,10 @@ class GroundednessSample:
     # (and any caller that doesn't yet know about the metric) keep
     # working without a forced update.
     faithfulness: float = 0.0
+    # One of "ok" | "retrieval_miss" | "insufficient_evidence" |
+    # "model_hallucination". See `groundedness.classify_failure_mode`.
+    # Default "ok" so older callers and tests keep working.
+    failure_mode: str = "ok"
 
 
 class GroundednessRecorder:
@@ -94,6 +98,16 @@ class GroundednessRecorder:
     distribution.
     """
 
+    # Failure-mode labels the rolling dashboard can decompose by.
+    # `dict[str, int]` shape keeps the API response schema stable even
+    # when a new label is added -- new keys appear, old keys stay.
+    _FAILURE_MODES: tuple[str, ...] = (
+        "ok",
+        "retrieval_miss",
+        "insufficient_evidence",
+        "model_hallucination",
+    )
+
     def __init__(self, window: int = WINDOW) -> None:
         self._lock = threading.Lock()
         self._window = window
@@ -101,6 +115,7 @@ class GroundednessRecorder:
         self._recall: deque[float] = deque(maxlen=window)
         self._precision: deque[float] = deque(maxlen=window)
         self._faithfulness: deque[float] = deque(maxlen=window)
+        self._failure_counts: dict[str, int] = {m: 0 for m in self._FAILURE_MODES}
 
     def record(self, sample: GroundednessSample) -> None:
         with self._lock:
@@ -108,16 +123,29 @@ class GroundednessRecorder:
             self._recall.append(sample.citation_recall)
             self._precision.append(sample.citation_precision)
             self._faithfulness.append(sample.faithfulness)
+            mode = sample.failure_mode
+            if mode not in self._failure_counts:
+                # Unknown label (forward-compat): count it under "ok" so
+                # the dashboard doesn't inflate the other buckets.
+                mode = "ok"
+            self._failure_counts[mode] += 1
 
     def stats(self) -> dict[str, float]:
         with self._lock:
-            return {
-                "sample_count": len(self._rouge),
+            n = len(self._rouge)
+            out: dict[str, float] = {
+                "sample_count": n,
                 "rouge_l_f1_avg": _mean(self._rouge),
                 "citation_recall_avg": _mean(self._recall),
                 "citation_precision_avg": _mean(self._precision),
                 "faithfulness_avg": _mean(self._faithfulness),
             }
+            # Counts + fractions for the failure-mode breakdown panel.
+            for mode in self._FAILURE_MODES:
+                c = self._failure_counts.get(mode, 0)
+                out[f"failure_mode_{mode}_count"] = c
+                out[f"failure_mode_{mode}_frac"] = (c / n) if n else 0.0
+            return out
 
     def reset_for_tests(self) -> None:
         with self._lock:
@@ -125,6 +153,8 @@ class GroundednessRecorder:
             self._recall.clear()
             self._precision.clear()
             self._faithfulness.clear()
+            for mode in self._FAILURE_MODES:
+                self._failure_counts[mode] = 0
 
 
 def _percentiles(samples: deque[float]) -> dict[str, float]:

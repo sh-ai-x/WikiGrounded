@@ -403,3 +403,54 @@ def answer_faithfulness(
     if total == 0:
         return 0.0
     return supported_total / total
+
+
+# ---- Failure-mode classifier ----
+#
+# The four-metric dashboard (ROUGE-L / Citation Recall / Citation
+# Precision / Faithfulness) tells you a turn is bad, but not WHY.
+# Operators reading a low-Faithfulness spike have three plausible
+# fixes: tweak the retriever, expand the corpus, or tighten the
+# prompt. They are not interchangeable. This classifier picks one
+# bucket per turn so the dashboard can decompose the rolling window
+# by cause. The thresholds are deliberately conservative -- they
+# only fire on turns that are clearly bad in the metric they target,
+# not on borderline cases.
+#
+# Labels (string-literal so they survive JSON round-trips and
+# dashboard rendering without an Enum import):
+#   "ok"                    -- the model used the retrieved evidence
+#   "retrieval_miss"        -- top hit scored 0 or had 0 coverage
+#   "insufficient_evidence" -- evidence exists but the model chose
+#                              not to cite most of it AND its claims
+#                              aren't in what it cited
+#   "model_hallucination"   -- evidence exists AND the model cites
+#                              a lot of it, but the answer text and
+#                              cited evidence share almost no tokens
+#                              (low precision on emitted [ref-x]) --
+#                              the model is fabricating structure on
+#                              top of real evidence
+
+
+def classify_failure_mode(
+    top_hit_score: float,
+    top_hit_coverage: float,
+    faithfulness: float,
+    citation_recall: float,
+    citation_precision: float,
+) -> str:
+    """Classify one turn's failure mode from its raw metrics.
+
+    Args are scalars extracted from the turn's hits + groundedness
+    numbers, so this function has no IO and is trivially testable.
+    Order of evaluation: retrieval_miss first (cheapest signal,
+    explains everything downstream), then the answer-level split
+    between insufficient_evidence and model_hallucination.
+    """
+    if top_hit_score <= 0.0 or top_hit_coverage <= 0.0:
+        return "retrieval_miss"
+    if faithfulness < 0.3 and citation_recall < 0.3:
+        return "insufficient_evidence"
+    if faithfulness < 0.3 and citation_precision < 0.7:
+        return "model_hallucination"
+    return "ok"

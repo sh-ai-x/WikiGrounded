@@ -33,7 +33,7 @@ from fastapi import Depends, FastAPI, Form, Header, HTTPException, status
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
-from .. import dev_metrics, oss_helper, wiki_corpus
+from .. import dev_metrics, groundedness, oss_helper, wiki_corpus
 from ..db.models import Action, Run, ToolCall
 from ..db.session import session_scope
 from ..graph.state import RunState, is_terminal, make_action_key
@@ -1203,20 +1203,30 @@ def wiki_qa(
     # "Accuracy / hallucination" panel aggregates these over the
     # trailing 200-call window so a reviewer can see whether the
     # model is drifting, not just what one turn did.
+    top_score = max((h.score for h in turn.hits), default=0.0)
+    top_coverage = max((h.coverage for h in turn.hits), default=0.0)
+    failure_mode = groundedness.classify_failure_mode(
+        top_hit_score=top_score,
+        top_hit_coverage=top_coverage,
+        faithfulness=turn.faithfulness,
+        citation_recall=turn.citation_recall,
+        citation_precision=turn.citation_precision,
+    )
     groundedness_metrics.record(
         GroundednessSample(
             rouge_l_f1=turn.overall_rouge_l_f1,
             citation_recall=turn.citation_recall,
             citation_precision=turn.citation_precision,
             faithfulness=turn.faithfulness,
+            failure_mode=failure_mode,
         )
     )
     log.info(
         "wiki qa: principal=%s corpus_id=%s thread_id=%s hits=%d sentences=%d "
-        "rouge_l=%.3f cite_recall=%.3f cite_prec=%.3f faithful=%.3f",
+        "rouge_l=%.3f cite_recall=%.3f cite_prec=%.3f faithful=%.3f failure_mode=%s",
         principal_id, body.corpus_id, thread_id, len(turn.hits), len(turn.sentences),
         turn.overall_rouge_l_f1, turn.citation_recall, turn.citation_precision,
-        turn.faithfulness,
+        turn.faithfulness, failure_mode,
     )
     return QaResponse(
         query=body.query,

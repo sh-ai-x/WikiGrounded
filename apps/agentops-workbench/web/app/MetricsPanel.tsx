@@ -206,6 +206,35 @@ export default function MetricsPanel({
         </div>
       )}
 
+      {data && (
+        <div className="metric-stats-row" style={{ marginTop: 4 }}>
+          <Stat
+            label="ok (used evidence)"
+            value={pct(data.groundedness.failure_mode_ok_frac)}
+            color={metricColor(data.groundedness.failure_mode_ok_frac)}
+            title={`${data.groundedness.failure_mode_ok_count} of ${data.groundedness.sample_count} recent turns used the retrieved evidence and cited it honestly`}
+          />
+          <Stat
+            label="retrieval miss"
+            value={pct(data.groundedness.failure_mode_retrieval_miss_frac)}
+            color={data.groundedness.failure_mode_retrieval_miss_count > 0 ? "#d97706" : undefined}
+            title={`${data.groundedness.failure_mode_retrieval_miss_count} of ${data.groundedness.sample_count}: top hit scored 0 or had 0% coverage. Fix: retriever, query, corpus coverage`}
+          />
+          <Stat
+            label="insufficient evidence"
+            value={pct(data.groundedness.failure_mode_insufficient_evidence_frac)}
+            color={data.groundedness.failure_mode_insufficient_evidence_count > 0 ? "#d97706" : undefined}
+            title={`${data.groundedness.failure_mode_insufficient_evidence_count} of ${data.groundedness.sample_count}: evidence exists but model cited < 30% of sentences and claims aren't in cited text. Fix: corpus / question`}
+          />
+          <Stat
+            label="model hallucination"
+            value={pct(data.groundedness.failure_mode_model_hallucination_frac)}
+            color={data.groundedness.failure_mode_model_hallucination_count > 0 ? "#dc2626" : undefined}
+            title={`${data.groundedness.failure_mode_model_hallucination_count} of ${data.groundedness.sample_count}: evidence was good but model fabricated structure on top. Fix: prompt / model`}
+          />
+        </div>
+      )}
+
       <h3>Latency (ms, recent window)</h3>
       <p className="muted">
         Per-stage timing of /v1/wiki/search. p50 is the median request,
