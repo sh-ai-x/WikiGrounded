@@ -1,15 +1,15 @@
 {
-  "code_sha": "1aaf4a9",
-  "embedder": "real",
+  "code_sha": "ac36871",
+  "embedder": "fake",
   "held_out_sha256": "7a56ffc666e0e8d6be3a019ad037c598119c27f63f661127ff91299cd0d8c79f",
   "k": 5,
   "modes": [
+    "tfidf",
     "bm25",
     "dense",
     "hybrid",
-    "hybrid_rerank",
-    "tfidf"
+    "hybrid_rerank"
   ],
   "split": "dev",
-  "started_at": "2026-09-17T04:15:05Z"
+  "started_at": "2026-10-05T08:34:29Z"
 }

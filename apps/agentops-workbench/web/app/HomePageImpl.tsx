@@ -724,11 +724,7 @@ export default function HomePageImpl() {
               disabled={busy}
               title="Applies when you pick a directory -- see README's Retrieval algorithm section"
             >
-              <option value="tfidf">TF-IDF (cosine)</option>
               <option value="bm25">BM25</option>
-              <option value="dense">Dense (bge-small, ONNX)</option>
-              <option value="hybrid">Hybrid: BM25 + dense (RRF)</option>
-              <option value="hybrid_rerank">Hybrid + cross-encoder rerank</option>
             </select>
           </label>
           {retrieval !== "tfidf" && retrieval !== "bm25" && (
