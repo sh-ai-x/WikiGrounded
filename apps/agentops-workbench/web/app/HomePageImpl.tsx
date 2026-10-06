@@ -328,7 +328,7 @@ async function extractErrorDetail(r: Response): Promise<string> {
 
 function MetricsGuide({
   topic,
-  retrieval = "tfidf",
+  retrieval = "bm25",
 }: {
   topic: "search" | "qa";
   retrieval?: RetrievalMode;
@@ -388,11 +388,11 @@ export default function HomePageImpl() {
   // "Retrieval algorithm" section. Applies at index time; switching
   // this after a directory is already picked has no effect until the
   // next pick (re-indexing doesn't happen automatically).
-  const [retrieval, setRetrieval] = useState<RetrievalMode>("tfidf");
+  const [retrieval, setRetrieval] = useState<RetrievalMode>("bm25");
   // The mode actually resolved by the last index-files call -- may differ
   // from `retrieval` above if the server fell back to its own default.
   // Drives the metrics dashboard's mode-attribution subtitle.
-  const [resolvedRetrieval, setResolvedRetrieval] = useState<RetrievalMode>("tfidf");
+  const [resolvedRetrieval, setResolvedRetrieval] = useState<RetrievalMode>("bm25");
   // LLM provider for the chat call. `null` until `/v1/wiki/providers`
   // responds, at which point it's set to the server's configured default
   // -- so a picker render always reflects a real, key-backed choice.

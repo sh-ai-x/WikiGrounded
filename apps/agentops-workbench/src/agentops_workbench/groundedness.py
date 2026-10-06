@@ -421,15 +421,13 @@ def answer_faithfulness(
 # dashboard rendering without an Enum import):
 #   "ok"                    -- the model used the retrieved evidence
 #   "retrieval_miss"        -- top hit scored 0 or had 0 coverage
-#   "insufficient_evidence" -- evidence exists but the model chose
-#                              not to cite most of it AND its claims
-#                              aren't in what it cited
-#   "model_hallucination"   -- evidence exists AND the model cites
-#                              a lot of it, but the answer text and
-#                              cited evidence share almost no tokens
-#                              (low precision on emitted [ref-x]) --
-#                              the model is fabricating structure on
-#                              top of real evidence
+#   "insufficient_evidence" -- faithfulness is low AND the model
+#                              barely cited (recall < 0.3) -- it
+#                              didn't even try to ground the answer
+#   "model_hallucination"   -- faithfulness is low BUT the model
+#                              cited plenty (recall >= 0.3) -- the
+#                              citations look right but the claim
+#                              content isn't actually in what's cited
 
 
 def classify_failure_mode(
@@ -444,13 +442,18 @@ def classify_failure_mode(
     Args are scalars extracted from the turn's hits + groundedness
     numbers, so this function has no IO and is trivially testable.
     Order of evaluation: retrieval_miss first (cheapest signal,
-    explains everything downstream), then the answer-level split
-    between insufficient_evidence and model_hallucination.
+    explains everything downstream). Below that, faithfulness < 0.3
+    is the single gate for "this turn is NOT ok" -- a turn whose
+    claims aren't actually in the evidence is never "ok" regardless
+    of how its citations look. citation_recall then distinguishes
+    why: low recall means the model barely tried to cite (or
+    couldn't), high recall with low faithfulness means it cited
+    real refs but fabricated content on top of them.
     """
     if top_hit_score <= 0.0 or top_hit_coverage <= 0.0:
         return "retrieval_miss"
-    if faithfulness < 0.3 and citation_recall < 0.3:
+    if faithfulness >= 0.3:
+        return "ok"
+    if citation_recall < 0.3:
         return "insufficient_evidence"
-    if faithfulness < 0.3 and citation_precision < 0.7:
-        return "model_hallucination"
-    return "ok"
+    return "model_hallucination"

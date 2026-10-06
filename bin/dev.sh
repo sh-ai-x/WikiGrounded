@@ -72,6 +72,12 @@ bootstrap() {
   set_or_replace_env "$env_file" "AGENTOPS_ALLOW_DEV_TOKEN" "true"
   set_or_replace_env "$env_file" "AGENTOPS_DEV_TOKEN_ANY_PROVIDER" "true"
   set_or_replace_env "$env_file" "AGENTOPS_PROVIDER" "local-fake"
+  # MetricsPanel resets the rolling window on every mount so a fresh
+  # tab doesn't inherit a previous session's numbers (api/server.py's
+  # wiki_metrics_reset handler). Off by default (IDOR guard: any
+  # authed principal could zero every session's metrics) -- safe to
+  # enable for single-operator local dev.
+  set_or_replace_env "$env_file" "AGENTOPS_ALLOW_WIKI_METRICS_RESET" "true"
 
   # 4. web bearer — start API briefly to mint a 10y token
   if [ ! -f "$web_env" ] || ! grep -qE "^NEXT_PUBLIC_AGENTOPS_DEV_BEARER=eyJ" "$web_env"; then

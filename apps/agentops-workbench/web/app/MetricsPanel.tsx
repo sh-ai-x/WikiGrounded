@@ -20,6 +20,16 @@ type GroundednessStats = {
   citation_precision_avg: number;
   // Maynez et al., 2020 -- see faithfulness badge on each turn.
   faithfulness_avg: number;
+  // One {count, frac} pair per label in wiki_metrics.GroundednessRecorder's
+  // _FAILURE_MODES, over the same trailing window as sample_count.
+  failure_mode_ok_count: number;
+  failure_mode_ok_frac: number;
+  failure_mode_retrieval_miss_count: number;
+  failure_mode_retrieval_miss_frac: number;
+  failure_mode_insufficient_evidence_count: number;
+  failure_mode_insufficient_evidence_frac: number;
+  failure_mode_model_hallucination_count: number;
+  failure_mode_model_hallucination_frac: number;
 };
 type MetricsResponse = {
   latency: LatencyStats;
@@ -39,12 +49,16 @@ function ms(value: number): string {
   return `${value.toFixed(1)} ms`;
 }
 
+const COLOR_GOOD = "#16a34a";
+const COLOR_WARN = "#d97706";
+const COLOR_BAD = "#dc2626";
+
 function metricColor(value: number): string {
   // Same threshold curve as the per-turn groundedness badges -- green /
   // amber / red, so the color story is consistent across the page.
-  if (value >= 0.6) return "#16a34a";
-  if (value >= 0.3) return "#d97706";
-  return "#dc2626";
+  if (value >= 0.6) return COLOR_GOOD;
+  if (value >= 0.3) return COLOR_WARN;
+  return COLOR_BAD;
 }
 
 function Stat({ label, value, color, title }: { label: string; value: string; color?: string; title?: string }) {
@@ -217,7 +231,7 @@ export default function MetricsPanel({
           <Stat
             label="retrieval miss"
             value={pct(data.groundedness.failure_mode_retrieval_miss_frac)}
-            color={data.groundedness.failure_mode_retrieval_miss_count > 0 ? "#d97706" : undefined}
+            color={data.groundedness.failure_mode_retrieval_miss_count > 0 ? COLOR_WARN : undefined}
             title={`${data.groundedness.failure_mode_retrieval_miss_count} of ${data.groundedness.sample_count}: top hit scored 0 or had 0% coverage. Fix: retriever, query, corpus coverage`}
           />
           <Stat
