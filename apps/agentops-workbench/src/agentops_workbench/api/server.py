@@ -1203,8 +1203,10 @@ def wiki_qa(
     # "Accuracy / hallucination" panel aggregates these over the
     # trailing 200-call window so a reviewer can see whether the
     # model is drifting, not just what one turn did.
-    top_score = max((h.score for h in turn.hits), default=0.0)
-    top_coverage = max((h.coverage for h in turn.hits), default=0.0)
+    # turn.hits is list[dict] (ChatTurn.hits -- built via WikiSearchHit.to_dict(),
+    # not the WikiHit pydantic model), so these are dict lookups, not attrs.
+    top_score = max((h["score"] for h in turn.hits), default=0.0)
+    top_coverage = max((h["coverage"] for h in turn.hits), default=0.0)
     failure_mode = groundedness.classify_failure_mode(
         top_hit_score=top_score,
         top_hit_coverage=top_coverage,
